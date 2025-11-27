@@ -418,18 +418,28 @@ class OpenAITranslator(BaseTranslator):
         envs=None,
         prompt=None,
         ignore_cache=False,
+        stop_tokens=None,
+        max_tokens=None,
     ):
         self.set_envs(envs)
         if not model:
             model = self.envs["OPENAI_MODEL"]
         super().__init__(lang_in, lang_out, model, ignore_cache)
+        stop_tokens = (
+            stop_tokens
+            if stop_tokens is not None
+            else self.envs.get("OPENAI_STOP_TOKENS", "").split()
+        )
+        max_tokens = (
+            max_tokens
+            if max_tokens is not None
+            else int(self.envs.get("OPENAI_MAX_TOKENS", -1))
+        )
         self.options = {
             "temperature": 0, # 随机采样可能会打断公式标记
-            "stop": self.envs.get("OPENAI_STOP_TOKENS", "").split(),
-            "max_tokens": int(self.envs.get("OPENAI_MAX_TOKENS", -1)),
+            "stop": stop_tokens,
+            "max_tokens": max_tokens if max_tokens > 0 else None,
         }
-        print("OpenAITranslator")
-        print(self.options)
         self.client = openai.OpenAI(
             base_url=base_url or self.envs["OPENAI_BASE_URL"],
             api_key=api_key or self.envs["OPENAI_API_KEY"],
@@ -1003,10 +1013,6 @@ class OpenAIlikedTranslator(OpenAITranslator):
             api_key = "openailiked"
         else:
             api_key = self.envs["OPENAILIKED_API_KEY"]
-        if self.envs["OPENAILIKED_STOP_TOKENS"]:
-            self.envs["OPENAI_STOP_TOKENS"] = self.envs["OPENAILIKED_STOP_TOKENS"]
-        if self.envs["OPENAILIKED_MAX_TOKENS"]:
-            self.envs["OPENAI_MAX_TOKENS"] = self.envs["OPENAILIKED_MAX_TOKENS"]
         super().__init__(
             lang_in,
             lang_out,
@@ -1015,6 +1021,8 @@ class OpenAIlikedTranslator(OpenAITranslator):
             api_key=api_key,
             ignore_cache=ignore_cache,
             prompt=prompt,
+            stop_tokens=self.envs.get("OPENAILIKED_STOP_TOKENS", "").split(),
+            max_tokens=int(self.envs.get("OPENAILIKED_MAX_TOKENS", -1)),
         )
 
 
