@@ -403,6 +403,8 @@ class OpenAITranslator(BaseTranslator):
         "OPENAI_BASE_URL": "https://api.openai.com/v1",
         "OPENAI_API_KEY": None,
         "OPENAI_MODEL": "gpt-4o-mini",
+        "OPENAI_STOP_TOKENS": "", # Space separated list of stop tokens
+        "OPENAI_MAX_TOKENS": -1, # Specify -1 to call the API without setting max_tokens
     }
     CustomPrompt = True
 
@@ -421,13 +423,19 @@ class OpenAITranslator(BaseTranslator):
         if not model:
             model = self.envs["OPENAI_MODEL"]
         super().__init__(lang_in, lang_out, model, ignore_cache)
-        self.options = {"temperature": 0}  # 随机采样可能会打断公式标记
+        self.options = {
+            "temperature": 0, # 随机采样可能会打断公式标记
+            "stop": self.envs.get("OPENAI_STOP_TOKENS", "").split(),
+            "max_tokens": int(self.envs.get("OPENAI_MAX_TOKENS", -1)),
+        }
         self.client = openai.OpenAI(
             base_url=base_url or self.envs["OPENAI_BASE_URL"],
             api_key=api_key or self.envs["OPENAI_API_KEY"],
         )
         self.prompttext = prompt
         self.add_cache_impact_parameters("temperature", self.options["temperature"])
+        self.add_cache_impact_parameters("stop", self.options["stop"])
+        self.add_cache_impact_parameters("max_tokens", self.options["max_tokens"])
         self.add_cache_impact_parameters("prompt", self.prompt("", self.prompttext))
         think_filter_regex = r"^<think>.+?\n*(</think>|\n)*(</think>)\n*"
         self.add_cache_impact_parameters("think_filter_regex", think_filter_regex)
@@ -971,6 +979,8 @@ class OpenAIlikedTranslator(OpenAITranslator):
         "OPENAILIKED_BASE_URL": None,
         "OPENAILIKED_API_KEY": None,
         "OPENAILIKED_MODEL": None,
+        "OPENAILIKED_STOP_TOKENS": "", # Space separated list of stop tokens
+        "OPENAILIKED_MAX_TOKENS": -1, # Specify -1 to call the API without setting max_tokens
     }
     CustomPrompt = True
 
@@ -991,6 +1001,10 @@ class OpenAIlikedTranslator(OpenAITranslator):
             api_key = "openailiked"
         else:
             api_key = self.envs["OPENAILIKED_API_KEY"]
+        if self.envs["OPENAILIKED_STOP_TOKENS"]:
+            self.envs["OPENAI_STOP_TOKENS"] = self.envs["OPENAILIKED_STOP_TOKENS"]
+        if self.envs["OPENAILIKED_MAX_TOKENS"]:
+            self.envs["OPENAI_MAX_TOKENS"] = self.envs["OPENAILIKED_MAX_TOKENS"]
         super().__init__(
             lang_in,
             lang_out,
