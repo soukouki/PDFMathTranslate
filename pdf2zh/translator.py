@@ -428,6 +428,8 @@ class OpenAITranslator(BaseTranslator):
             "stop": self.envs.get("OPENAI_STOP_TOKENS", "").split(),
             "max_tokens": int(self.envs.get("OPENAI_MAX_TOKENS", -1)),
         }
+        print("OpenAITranslator")
+        print(self.options)
         self.client = openai.OpenAI(
             base_url=base_url or self.envs["OPENAI_BASE_URL"],
             api_key=api_key or self.envs["OPENAI_API_KEY"],
